@@ -1,0 +1,6 @@
+﻿namespace PunchServer
+{
+    class PunchHeartbeat
+    {
+    }
+}

@@ -1,0 +1,26 @@
+﻿<Page
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AtmoSync.Server"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:Shared="using:AtmoSync.Shared"
+    x:Class="AtmoSync.Server.ServerPage"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <Shared:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Page.Resources>
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Loaded="ServerPageLoaded">
+        <FlyoutBase.AttachedFlyout>
+            <Flyout Placement="Full">
+                <StackPanel>
+                    <ToggleSwitch x:Name="punshThroughSwitch" OnContent="Use NAT-Punsh-through" OffContent="Direct Connect" IsOn="True" />
+                    <TextBox x:Name="serverAlias" PlaceholderText="Server alias" Visibility="{Binding IsOn, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=punshThroughSwitch}"/>
+                    <Button HorizontalAlignment="Center" Margin="0,10,0,0" Tapped="StartServerTapped">Start Server</Button>
+                </StackPanel>
+            </Flyout>
+        </FlyoutBase.AttachedFlyout>
+    </Grid>
+</Page>
