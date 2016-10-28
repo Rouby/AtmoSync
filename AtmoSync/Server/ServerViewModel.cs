@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading.Tasks;
 using Windows.Storage;
 
@@ -12,17 +11,35 @@ namespace AtmoSync.Server
     class ServerViewModel : BindableBase
     {
         ObservableCollection<Sound> _soundFiles = new ObservableCollection<Sound>();
-        public IList<Sound> SoundFiles { get { return _soundFiles.ToList(); } set { SetProperty(ref _soundFiles, new ObservableCollection<Sound>(value)); } }
+        public IList<Sound> SoundFiles { get { return _soundFiles; } set { SetProperty(ref _soundFiles, new ObservableCollection<Sound>(value)); } }
+
+
+        bool _listening;
+        public bool Listening { get { return _listening; } set { SetProperty(ref _listening, value); } }
 
         Settings _settings;
         public Settings Settings { get { return _settings; } set { SetProperty(ref _settings, value); } }
 
         public ServerViewModel()
         {
-            LoadConfigAsync();
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            LoadSettingsAsync();
+            SoundFiles = new List<Sound> {
+                new Sound
+                {
+                    Id = Guid.NewGuid(),
+                    File = "C:/asd/asd/asd",
+                    ServerName = "Orc-Growl",
+                    ClientName = "Some Sound",
+                    Loop = false,
+                    Sync = false,
+                    Volume = 1.0
+                }
+            };
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
 
-        async Task LoadConfigAsync()
+        async Task LoadSettingsAsync()
         {
             var localData = ApplicationData.Current.LocalFolder;
 
@@ -42,7 +59,7 @@ namespace AtmoSync.Server
         }
 
 
-        async Task LoadSettingsAsync(string alias)
+        public async Task LoadSoundFilesAsync(string alias)
         {
             var uriServer = Uri.EscapeUriString(alias);
             var localData = ApplicationData.Current.LocalFolder;
@@ -60,7 +77,7 @@ namespace AtmoSync.Server
             }
         }
 
-        async Task SaveSettingsAsync(string alias)
+        public async Task SaveSoundFilesAsync(string alias)
         {
             var uriServer = Uri.EscapeUriString(alias);
             var localData = ApplicationData.Current.LocalFolder;

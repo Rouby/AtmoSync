@@ -2,7 +2,7 @@
 
 namespace AtmoSync.Shared.Messages
 {
-    class PlaySoundMessage
+    class PlaySoundMessage : Message
     {
         public Guid SoundId { get; set; }
     }

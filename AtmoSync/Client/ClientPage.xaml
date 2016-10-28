@@ -10,6 +10,7 @@
     mc:Ignorable="d">
     <Page.Resources>
         <shared:ConnectedToSymbolConverter x:Key="ConnectedConverter"/>
+        <shared:InvertedBooleanToVisibilityConverter x:Key="InvertedBooleanToVisibilityConverter"/>
     </Page.Resources>
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
@@ -28,9 +29,9 @@
             </ListView>
         </Grid>
         <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal">
-            <HyperlinkButton Tapped="ConnectServerTapped">
+            <HyperlinkButton Tapped="ConnectServerTapped" Visibility="{Binding Connected, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
                 <FlyoutBase.AttachedFlyout>
-                    <Flyout>
+                    <Flyout x:Name="connectServerFlyout">
                         <StackPanel Orientation="Horizontal">
                             <TextBox x:Name="serverTextBox" Width="200" Margin="0,0,10,0" PlaceholderText="Server address"></TextBox>
                             <Button Tapped="InitConnectionTapped">Connect</Button>

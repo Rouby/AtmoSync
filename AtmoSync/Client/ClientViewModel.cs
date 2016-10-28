@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading.Tasks;
 using Windows.Storage;
 
@@ -12,7 +11,7 @@ namespace AtmoSync.Client
     class ClientViewModel : BindableBase
     {
         ObservableCollection<Sound> _soundFiles = new ObservableCollection<Sound>();
-        public IList<Sound> SoundFiles { get { return _soundFiles.ToList(); } set { SetProperty(ref _soundFiles, new ObservableCollection<Sound>(value)); } }
+        public IList<Sound> SoundFiles { get { return _soundFiles; } set { SetProperty(ref _soundFiles, new ObservableCollection<Sound>(value)); } }
 
         public IDictionary<Guid, double> LocalSoundVolumes { get; set; } = new Dictionary<Guid, double>();
 
@@ -24,10 +23,12 @@ namespace AtmoSync.Client
 
         public ClientViewModel()
         {
-            LoadConfigAsync();
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            LoadSettingsAsync();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
 
-        async Task LoadConfigAsync()
+        async Task LoadSettingsAsync()
         {
             var localData = ApplicationData.Current.LocalFolder;
 
@@ -47,7 +48,7 @@ namespace AtmoSync.Client
         }
 
 
-        async Task LoadSettingsAsync(string server)
+        public async Task LoadSoundFilesAsync(string server)
         {
             var uriServer = Uri.EscapeUriString(server);
             var localData = ApplicationData.Current.LocalFolder;
@@ -77,7 +78,7 @@ namespace AtmoSync.Client
             }
         }
 
-        async Task SaveSettingsAsync(string server)
+        public async Task SaveSoundFilesAsync(string server)
         {
             var uriServer = Uri.EscapeUriString(server);
             var localData = ApplicationData.Current.LocalFolder;

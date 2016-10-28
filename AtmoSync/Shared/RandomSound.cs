@@ -1,7 +1,11 @@
-﻿namespace AtmoSync.Shared
+﻿using System.Collections.ObjectModel;
+using System.Linq;
+
+namespace AtmoSync.Shared
 {
     class RandomSound : Sound
     {
-        public string[] Files { get; set; }
+        ObservableCollection<string> _files = new ObservableCollection<string>();
+        public string[] Files { get { return _files.ToArray(); } set { SetProperty(ref _files, new ObservableCollection<string>(value)); } }
     }
 }

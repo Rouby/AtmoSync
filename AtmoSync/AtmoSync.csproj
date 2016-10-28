@@ -99,8 +99,13 @@
       <DependentUpon>ClientPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Client\ClientViewModel.cs" />
+    <Compile Include="Server\ClientHandler.cs" />
     <Compile Include="Server\ServerViewModel.cs" />
+    <Compile Include="Server\SoundControl.xaml.cs">
+      <DependentUpon>SoundControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Shared\BooleanToVisibilityConverter.cs" />
+    <Compile Include="Shared\InvertedBooleanToVisibilityConverter.cs" />
     <Compile Include="Shared\ConnectedToSymbolConverter.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
@@ -111,6 +116,7 @@
     </Compile>
     <Compile Include="Shared\BindableBase.cs" />
     <Compile Include="Shared\Messages\Message.cs" />
+    <Compile Include="Shared\Messages\OkMessage.cs" />
     <Compile Include="Shared\Messages\PlaySoundMessage.cs" />
     <Compile Include="Shared\Messages\StopSoundMessage.cs" />
     <Compile Include="Shared\Messages\SyncSoundMessage.cs" />
@@ -119,7 +125,13 @@
     <Compile Include="Shared\PunchResponse.cs" />
     <Compile Include="Shared\RandomSound.cs" />
     <Compile Include="Shared\Settings.cs" />
+    <Compile Include="Shared\ShouldSoundSyncToSymbolConverter.cs" />
     <Compile Include="Shared\Sound.cs" />
+    <Compile Include="Shared\SoundStatusPauseVisibility.cs" />
+    <Compile Include="Shared\SoundStatusToCanBeStoppedConverter.cs" />
+    <Compile Include="Shared\SoundStatusPlayVisibility.cs" />
+    <Compile Include="Shared\IsSyncedToSymbolConverter.cs" />
+    <Compile Include="Shared\VolumeToSymbolConverter.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -177,6 +189,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Server\ServerPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Server\SoundControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

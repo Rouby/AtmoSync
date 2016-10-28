@@ -37,7 +37,7 @@ namespace AtmoSync.Client
             FlyoutBase.ShowAttachedFlyout((FrameworkElement)sender);
         }
 
-        async void InitConnectionTapped(object sender, TappedRoutedEventArgs e)
+        void InitConnectionTapped(object sender, TappedRoutedEventArgs e)
         {
             IPAddress address;
             var serverAddress = serverTextBox.Text.Contains(":")
@@ -45,12 +45,13 @@ namespace AtmoSync.Client
                 : serverTextBox.Text;
             if (IPAddress.TryParse(serverAddress, out address))
             {
-                await DirectConnectAsync(serverAddress);
+                DirectConnectAsync(serverAddress);
             }
             else
             {
-                await ConnectViaPunchServerAsync();
+                ConnectViaPunchServerAsync();
             }
+            connectServerFlyout.Hide();
         }
 
         async Task ConnectViaPunchServerAsync()
