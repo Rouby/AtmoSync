@@ -99,7 +99,8 @@
       <DependentUpon>ClientPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Client\ClientViewModel.cs" />
-    <Compile Include="Server\ClientHandler.cs" />
+    <Compile Include="Client\ClientHandler.cs" />
+    <Compile Include="Server\IServer.cs" />
     <Compile Include="Server\ServerViewModel.cs" />
     <Compile Include="Server\SoundControl.xaml.cs">
       <DependentUpon>SoundControl.xaml</DependentUpon>
@@ -118,6 +119,7 @@
     <Compile Include="Shared\Messages\Message.cs" />
     <Compile Include="Shared\Messages\OkMessage.cs" />
     <Compile Include="Shared\Messages\PlaySoundMessage.cs" />
+    <Compile Include="Shared\Messages\RequestFileMessage.cs" />
     <Compile Include="Shared\Messages\StopSoundMessage.cs" />
     <Compile Include="Shared\Messages\SyncSoundMessage.cs" />
     <Compile Include="Shared\PunchHeartbeat.cs" />

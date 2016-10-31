@@ -37,75 +37,15 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Text="Sounds" FontWeight="Bold" FontSize="18" />
-            <SymbolIcon  x:Name="symbs" Symbol="Sync" RenderTransformOrigin="0.5,0.5">
-                <SymbolIcon.RenderTransform>
-                    <RotateTransform Angle="0" />
-                </SymbolIcon.RenderTransform>
-            </SymbolIcon>
-            <Button Grid.Column="1">Add sound...</Button>
-            <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SoundFiles}">
+            <TextBlock Text="Sounds" FontWeight="Bold" FontSize="24" VerticalAlignment="Center" Margin="50,0,0,0" />
+            <Button Grid.Column="1" Tapped="AddNewSound">Add sound...</Button>
+            <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SoundFiles}" Margin="10,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <local:SoundControl>
-                        </local:SoundControl>
+                        <local:SoundControl SoundRemoved="RemoveSound" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <!--<ListView Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SoundFiles}" >
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="16" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="16" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="16" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="{Binding ServerName}" Tapped="ShowFlyout" FontSize="20" FontWeight="Bold">
-                                <FlyoutBase.AttachedFlyout>
-                                    <Flyout>
-                                        <TextBox Text="{Binding ServerName, Mode=TwoWay}" />
-                                    </Flyout>
-                                </FlyoutBase.AttachedFlyout>
-                            </TextBlock>
-                            <TextBlock Grid.Column="2" Text="{Binding ClientName}" FontStyle="Italic" VerticalAlignment="Bottom" />
-                            <StackPanel Grid.Column="4" Orientation="Horizontal">
-                                <SymbolIcon Symbol="World" Margin="0,0,10,0" />
-                                <SymbolIcon  x:Name="symbs" Symbol="{Binding IsSynced, Converter={StaticResource IsSyncedToSymbolConverter}}" RenderTransformOrigin="0.5,0.5">
-                                    <SymbolIcon.RenderTransform>
-                                        <RotateTransform Angle="0" />
-                                    </SymbolIcon.RenderTransform>
-                                    <SymbolIcon.Resources>
-                                        <Storyboard x:Name="Rotate">
-                                            <DoubleAnimation From="0" To="360" Duration="0:0:2"  RepeatBehavior="Forever"
-                                                             Storyboard.TargetName="symb"
-                                                             Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"/>
-                                        </Storyboard>
-                                    </SymbolIcon.Resources>
-                                </SymbolIcon>
-                            </StackPanel>
-                            <TextBlock Grid.Column="6" Text="{Binding File}" VerticalAlignment="Center"/>
-                            <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.ColumnSpan="3">
-                                --><!--<SymbolIcon Symbol="Play" />--><!--
-                                <AppBarButton Icon="Play" Label="Play" Visibility="{Binding Status, Converter={StaticResource SoundStatusPlayVisibility}}" Tapped="PlaySound" />
-                                <AppBarButton Icon="Pause" Label="Pause" Visibility="{Binding Status, Converter={StaticResource SoundStatusPauseVisibility}}" Tapped="PauseSound" />
-                                <AppBarButton Icon="Stop" Label="Stop" IsEnabled="{Binding Status, Converter={StaticResource SoundStatusToCanBeStoppedConverter}}" Tapped="StopSound" />
-                                <SymbolIcon Symbol="{Binding Volume, Converter={StaticResource VolumeToSymbolConverter}}" Margin="10,0" />
-                                <Slider Width="200" Height="38" Margin="10,0" Minimum="0" Maximum="1" Value="{Binding Volume, Mode=TwoWay}" LargeChange="0.1" SmallChange="0.01" StepFrequency="0.01" />
-                            </StackPanel>
-                        </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>-->
         </Grid>
         <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal">
             <HyperlinkButton Tapped="HostServerTapped" Visibility="{Binding Listening, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
@@ -116,9 +56,11 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <ToggleSwitch x:Name="punshThroughSwitch" OnContent="Use NAT-Punsh-through" OffContent="Use Direct-IP" IsOn="True" />
+                            <ToggleSwitch x:Name="punshThroughSwitch" OnContent="Use NAT-Punch-through" OffContent="Use Direct-IP" IsOn="True" />
                             <StackPanel Orientation="Horizontal" Grid.Row="1">
-                                <TextBox x:Name="serverTextBox" Width="200" Margin="0,0,10,0" PlaceholderText="Server alias" Visibility="{Binding IsOn, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=punshThroughSwitch}"></TextBox>
+                                <TextBox x:Name="serverTextBox" Width="150" Margin="0,0,10,0" PlaceholderText="Server alias" Visibility="{Binding IsOn, Converter={StaticResource BooleanToVisibilityConverter}, ElementName=punshThroughSwitch}"></TextBox>
+                                <TextBlock Text="Your IP:" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsOn, Converter={StaticResource InvertedBooleanToVisibilityConverter}, ElementName=punshThroughSwitch}" />
+                                <TextBlock Text="{Binding HostName}" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="{Binding IsOn, Converter={StaticResource InvertedBooleanToVisibilityConverter}, ElementName=punshThroughSwitch}" />
                                 <Button Tapped="StartServerTapped">Start Server</Button>
                             </StackPanel>
                         </Grid>
@@ -128,6 +70,7 @@
                     Host a server
                 </HyperlinkButton.Content>
             </HyperlinkButton>
+            <TextBlock Text="Hosting server" VerticalAlignment="Center" Visibility="{Binding Listening, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <SymbolIcon Symbol="{Binding Listening, Converter={StaticResource ConnectedConverter}}" Width="32"/>
         </StackPanel>
     </Grid>

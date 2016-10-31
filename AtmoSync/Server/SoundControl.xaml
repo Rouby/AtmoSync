@@ -9,7 +9,7 @@
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=shared:Sound, IsDesignTimeCreatable=False}"
     d:DesignHeight="100"
-    d:DesignWidth="700">
+    d:DesignWidth="700" Loaded="UserControl_Loaded" DataContextChanged="UserControl_DataContextChanged">
 
     <UserControl.Resources>
         <shared:ShouldSoundSyncToSymbolConverter x:Key="ShouldSoundSyncToSymbolConverter"/>
@@ -45,20 +45,21 @@
             <RowDefinition Height="8"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+        <MediaElement x:Name="mediaElement" Grid.Column="8" Grid.Row="3" AudioCategory="BackgroundCapableMedia" RealTimePlayback="True" AutoPlay="False" IsLooping="{Binding Loop}" Volume="{Binding Volume}" MediaEnded="mediaElement_MediaEnded" />
         <StackPanel Grid.Column="0" Orientation="Horizontal">
-            <SymbolIcon Symbol="{Binding Sync, Converter={StaticResource ShouldSoundSyncToSymbolConverter}}" Tapped="ShowFlyout">
+            <SymbolIcon Symbol="People" Tapped="ShowFlyout">
                 <FlyoutBase.AttachedFlyout>
                     <Flyout>
                         <ToggleSwitch IsOn="{Binding Sync, Mode=TwoWay}" OnContent="Sync to clients" OffContent="Don't sync to clients" Toggled="ToggleSync" />
                     </Flyout>
                 </FlyoutBase.AttachedFlyout>
             </SymbolIcon>
-            <SymbolIcon x:Name="SyncSymbol" Margin="10,0,0,0" Symbol="{Binding IsSynced, Converter={StaticResource IsSyncedToSymbolConverter}}" RenderTransformOrigin="0.5,0.5" Visibility="{Binding Sync, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <SymbolIcon x:Name="SyncSymbol" Margin="10,0,0,0" Symbol="Sync" RenderTransformOrigin="0.5,0.5" Visibility="{Binding IsSyncing, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <SymbolIcon.RenderTransform>
                     <RotateTransform Angle="0" />
                 </SymbolIcon.RenderTransform>
             </SymbolIcon>
-            <SymbolIcon Symbol="Accept" Visibility="{Binding IsSynced, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <SymbolIcon Margin="10,0,0,0" Symbol="Accept" Visibility="{Binding IsSynced, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
         <TextBlock Grid.Column="2" Text="{Binding ServerName}" Tapped="ShowFlyout" FontSize="20" FontWeight="Bold">
             <FlyoutBase.AttachedFlyout>
@@ -75,7 +76,9 @@
             </FlyoutBase.AttachedFlyout>
         </TextBlock>
         <TextBlock Grid.Column="6" Text="{Binding File}" VerticalAlignment="Bottom"/>
-        <SymbolIcon Grid.Column="8" Symbol="Remove" />
+        <AppBarButton Grid.Column="8" Grid.Row="2" Icon="Remove" Label="Remove" Tapped="RemoveSoundTapped"/>
+        <SymbolIcon Grid.Column="8" Symbol="Important" Visibility="{Binding Invalid, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTipService.ToolTip="{Binding InvalidMessage}"/>
+
 
         <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.ColumnSpan="7">
             <!--<SymbolIcon Symbol="Play" />-->
@@ -84,6 +87,7 @@
             <AppBarButton Icon="Stop" Label="Stop" IsEnabled="{Binding Status, Converter={StaticResource SoundStatusToCanBeStoppedConverter}}" Tapped="StopSound" />
             <SymbolIcon Symbol="{Binding Volume, Converter={StaticResource VolumeToSymbolConverter}}" Margin="10,0" />
             <Slider Width="200" Height="38" Margin="10,0" Minimum="0" Maximum="1" Value="{Binding Volume, Mode=TwoWay}" LargeChange="0.1" SmallChange="0.01" StepFrequency="0.01" />
+            <AppBarToggleButton Icon="RepeatAll" Label="Loop" IsChecked="{Binding Loop, Mode=TwoWay}" />
         </StackPanel>
     </Grid>
 </UserControl>

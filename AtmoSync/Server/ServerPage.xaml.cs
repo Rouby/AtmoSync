@@ -1,7 +1,11 @@
 ﻿using AtmoSync.Shared;
+using AtmoSync.Shared.Messages;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -10,6 +14,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Networking;
 using Windows.Networking.Sockets;
 using Windows.Storage;
+using Windows.Storage.Pickers;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -23,14 +28,13 @@ namespace AtmoSync.Server
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class ServerPage : Page
+    public sealed partial class ServerPage : Page, IServer
     {
         ServerViewModel Model { get; set; }
 
         StreamSocket punchServer;
         StreamReader punchIn;
         StreamWriter punchOut;
-
 
         StreamSocketListener listener;
         ConcurrentDictionary<Guid, ClientHandler> clients = new ConcurrentDictionary<Guid, ClientHandler>();
@@ -39,6 +43,71 @@ namespace AtmoSync.Server
         {
             InitializeComponent();
             DataContext = Model = new ServerViewModel();
+            Model.PropertyChanged += ModelPropertyChanged;
+            (Model.SoundFiles as INotifyCollectionChanged).CollectionChanged += SoundsListChanged;
+        }
+
+        private void SoundsListChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    break;
+                case NotifyCollectionChangedAction.Remove:
+                    break;
+                case NotifyCollectionChangedAction.Replace:
+                    break;
+                case NotifyCollectionChangedAction.Reset:
+                    break;
+            }
+            if (e.NewItems != null)
+                foreach (INotifyPropertyChanged newItem in e.NewItems)
+                    newItem.PropertyChanged += SoundFileChanged;
+            if (e.OldItems != null)
+                foreach (INotifyPropertyChanged oldItem in e.OldItems)
+                    oldItem.PropertyChanged -= SoundFileChanged;
+        }
+
+        private void SoundFileChanged(object sender, PropertyChangedEventArgs e)
+        {
+            var sound = (Sound)sender;
+
+            if (new[]
+            {
+                nameof(Sound.File),
+                nameof(Sound.ServerName),
+                nameof(Sound.ClientName),
+                nameof(Sound.Volume),
+                nameof(Sound.Loop),
+                nameof(Sound.Sync)
+            }.Contains(e.PropertyName))
+            {
+                if (sound.Sync)
+                {
+                    sound.SyncsOutstanding = clients.Count;
+                    sound.IsSynced = clients.Count == 0;
+                    // TODO sync sound to client
+                    foreach (var client in clients)
+                    {
+                        client.Value.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () => sound.DecrementSyncsOutstanding());
+                    }
+                }
+                else
+                {
+                    foreach (var client in clients)
+                    {
+                        client.Value.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = new Sound { Id = sound.Id } });
+                    }
+                }
+            }
+        }
+
+        private void ModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ServerViewModel.SoundFiles))
+            {
+
+            }
         }
 
         void HostServerTapped(object sender, TappedRoutedEventArgs e)
@@ -143,17 +212,19 @@ namespace AtmoSync.Server
         async void HandleClientAsync(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
         {
             var id = Guid.NewGuid();
-            var client = ClientHandler.CreateNew(args.Socket);
+            var client = ClientHandler.CreateNew(args.Socket, this);
             clients.TryAdd(id, client);
+
+            foreach (var sound in Model.SoundFiles)
+            {
+                sound.IncrementSyncsOutstanding();
+                sound.IsSynced = false;
+                client.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () => sound.DecrementSyncsOutstanding());
+            }
 
             await client.Run();
 
             clients.TryRemove(id, out client);
-        }
-
-        private void TappedSoundFile(object sender, TappedRoutedEventArgs e)
-        {
-
         }
 
         private void Page_DragOver(object sender, DragEventArgs e)
@@ -170,19 +241,58 @@ namespace AtmoSync.Server
             {
                 var items = await e.DataView.GetStorageItemsAsync();
 
-                foreach (StorageFile item in items)
+                await AddFiles(items.Cast<StorageFile>());
+            }
+        }
+
+        private async void AddNewSound(object sender, TappedRoutedEventArgs e)
+        {
+            var picker = new FileOpenPicker
+            {
+                ViewMode = PickerViewMode.Thumbnail,
+                SuggestedStartLocation = PickerLocationId.MusicLibrary
+            };
+            picker.FileTypeFilter.Add(".mp3");
+            picker.FileTypeFilter.Add(".ogg");
+            picker.FileTypeFilter.Add(".wav");
+
+            var files = await picker.PickMultipleFilesAsync();
+            if (files?.Any() ?? false)
+            {
+                await AddFiles(files);
+            }
+        }
+
+        async Task AddFiles(IEnumerable<StorageFile> files)
+        {
+            foreach (var file in files)
+            {
+                if (new[] { ".mp3", ".ogg", ".wav" }.Contains(file.FileType))
                 {
-                    if (new[] { ".mp3", ".ogg", ".wav" }.Contains(item.FileType))
+                    Model.SoundFiles.Add(new Sound
                     {
-                        Model.SoundFiles.Add(new Sound
-                        {
-                            Id = Guid.NewGuid(),
-                            ServerName = item.DisplayName,
-                            Volume = 1,
-                            File = item.Path
-                        });
-                    }
+                        Id = Guid.NewGuid(),
+                        ServerName = file.DisplayName,
+                        Volume = 1,
+                        File = file.Path
+                    });
                 }
+            }
+
+            await Model.SaveSoundFilesAsync(string.IsNullOrWhiteSpace(serverTextBox.Text) ? "direct" : serverTextBox.Text);
+        }
+
+        public async Task<IStorageFile> GetSoundFileAsync(Guid id)
+        {
+            return await StorageFile.GetFileFromPathAsync(Model.SoundFiles.FirstOrDefault(s => s.Id.Equals(id)).File);
+        }
+
+        private async void RemoveSound(object sender, EventArgs e)
+        {
+            if (Model.SoundFiles.Contains(sender))
+            {
+                Model.SoundFiles.Remove((Sound)sender);
+                await Model.SaveSoundFilesAsync(string.IsNullOrWhiteSpace(serverTextBox.Text) ? "direct" : serverTextBox.Text);
             }
         }
     }

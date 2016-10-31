@@ -3,7 +3,9 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
+using Windows.Networking.Connectivity;
 using Windows.Storage;
 
 namespace AtmoSync.Server
@@ -11,7 +13,7 @@ namespace AtmoSync.Server
     class ServerViewModel : BindableBase
     {
         ObservableCollection<Sound> _soundFiles = new ObservableCollection<Sound>();
-        public IList<Sound> SoundFiles { get { return _soundFiles; } set { SetProperty(ref _soundFiles, new ObservableCollection<Sound>(value)); } }
+        public IList<Sound> SoundFiles { get { return _soundFiles; } set { _soundFiles.Clear(); foreach (var item in value) _soundFiles.Add(item); OnPropertyChanged(nameof(SoundFiles)); } }
 
 
         bool _listening;
@@ -20,22 +22,21 @@ namespace AtmoSync.Server
         Settings _settings;
         public Settings Settings { get { return _settings; } set { SetProperty(ref _settings, value); } }
 
+        public string HostName
+        {
+            get
+            {
+                var icp = NetworkInformation.GetInternetConnectionProfile();
+                var hostname = NetworkInformation.GetHostNames()
+                    .SingleOrDefault(name => name.IPInformation?.NetworkAdapter?.NetworkAdapterId == icp?.NetworkAdapter?.NetworkAdapterId);
+                return hostname?.CanonicalName ?? "No IP found";
+            }
+        }
+
         public ServerViewModel()
         {
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             LoadSettingsAsync();
-            SoundFiles = new List<Sound> {
-                new Sound
-                {
-                    Id = Guid.NewGuid(),
-                    File = "C:/asd/asd/asd",
-                    ServerName = "Orc-Growl",
-                    ClientName = "Some Sound",
-                    Loop = false,
-                    Sync = false,
-                    Volume = 1.0
-                }
-            };
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
 
