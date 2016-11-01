@@ -125,6 +125,7 @@
     <Compile Include="Shared\Messages\OkMessage.cs" />
     <Compile Include="Shared\Messages\PlaySoundMessage.cs" />
     <Compile Include="Shared\Messages\RequestFileMessage.cs" />
+    <Compile Include="Shared\Messages\PauseSoundMessage.cs" />
     <Compile Include="Shared\Messages\StopSoundMessage.cs" />
     <Compile Include="Shared\Messages\SyncSoundMessage.cs" />
     <Compile Include="Shared\PunchHeartbeat.cs" />

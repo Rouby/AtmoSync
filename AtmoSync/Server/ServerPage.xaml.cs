@@ -87,7 +87,6 @@ namespace AtmoSync.Server
                 {
                     sound.SyncsOutstanding = clients.Count;
                     sound.IsSynced = clients.Count == 0;
-                    // TODO sync sound to client
                     foreach (var client in clients)
                     {
                         client.Value.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () =>
@@ -105,6 +104,27 @@ namespace AtmoSync.Server
                     {
                         client.Value.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = new Sound { Id = sound.Id } });
                     }
+                }
+            }
+            else if (e.PropertyName == nameof(Sound.Status))
+            {
+                Message msg = null;
+                switch (sound.Status)
+                {
+                    case Status.Playing:
+                        msg = new PlaySoundMessage { Timestamp = DateTimeOffset.Now, SoundId = sound.Id };
+                        break;
+                    case Status.Paused:
+                        msg = new PauseSoundMessage { Timestamp = DateTimeOffset.Now, SoundId = sound.Id };
+                        break;
+                    case Status.Stopped:
+                        msg = new StopSoundMessage { Timestamp = DateTimeOffset.Now, SoundId = sound.Id };
+                        break;
+                }
+
+                foreach (var client in clients)
+                {
+                    client.Value.EnqueueMessage(msg);
                 }
             }
         }
