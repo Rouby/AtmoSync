@@ -95,11 +95,16 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Client\IClient.cs" />
+    <Compile Include="Client\ServerHandler.cs" />
     <Compile Include="Client\ClientPage.xaml.cs">
       <DependentUpon>ClientPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Client\ClientViewModel.cs" />
     <Compile Include="Client\ClientHandler.cs" />
+    <Compile Include="Client\SoundControl.xaml.cs">
+      <DependentUpon>SoundControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Server\IServer.cs" />
     <Compile Include="Server\ServerViewModel.cs" />
     <Compile Include="Server\SoundControl.xaml.cs">
@@ -183,6 +188,10 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Page Include="Client\ClientPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Client\SoundControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

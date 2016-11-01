@@ -2,10 +2,12 @@
 using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Windows.Networking;
 using Windows.Networking.Sockets;
+using Windows.Storage;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -19,7 +21,7 @@ namespace AtmoSync.Client
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class ClientPage : Page
+    public sealed partial class ClientPage : Page, IClient
     {
         ClientViewModel Model { get; set; }
 
@@ -45,11 +47,11 @@ namespace AtmoSync.Client
                 : serverTextBox.Text;
             if (IPAddress.TryParse(serverAddress, out address))
             {
-                DirectConnectAsync(serverAddress);
+                var ignore = DirectConnectAsync(serverAddress);
             }
             else
             {
-                ConnectViaPunchServerAsync();
+                var ignore = ConnectViaPunchServerAsync();
             }
             connectServerFlyout.Hide();
         }
@@ -100,7 +102,7 @@ namespace AtmoSync.Client
             else
             {
                 name = address.Split(':')[0];
-                port = "34512";
+                port = "56779";
             }
 
             try
@@ -113,6 +115,10 @@ namespace AtmoSync.Client
 
                 var msg = new MessageDialog("connected to server");
                 await msg.ShowAsync();
+
+                var server = ServerHandler.CreateNew(socket, this);
+
+                var ignore = Task.Factory.StartNew(() => server.Run());
             }
             catch (Exception e)
             {
@@ -121,6 +127,41 @@ namespace AtmoSync.Client
 
                 Model.Connected = false;
             }
+        }
+
+        async Task<bool> IClient.SoundExistsAsync(Guid id)
+        {
+            foreach (var sound in Model.SoundFiles.Where(s => s.Id.Equals(id)))
+            {
+                try
+                {
+                    var file = await StorageFile.GetFileFromPathAsync(sound.File);
+                    return true;
+                }
+                catch { }
+            }
+            return false;
+        }
+
+        void IClient.AddSound(Sound sound)
+        {
+            var ignored = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+            {
+                Model.SoundFiles.Add(sound);
+            });
+        }
+
+        void IClient.SyncSound(Guid id, Sound sound)
+        {
+            
+        }
+
+        void IClient.RemoveSound(Guid id)
+        {
+            var ignored = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+            {
+                Model.SoundFiles.Remove(Model.SoundFiles.First(s => s.Id.Equals(id)));
+            });
         }
     }
 }

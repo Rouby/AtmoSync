@@ -24,9 +24,14 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <TextBlock Text="Sounds" FontWeight="Bold" FontSize="18" />
-            <ListView Grid.Row="1">
-
-            </ListView>
+            <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SoundFiles}" Margin="10,0">
+                <ItemsControl.ItemTemplate>
+                    
+                    <DataTemplate>
+                        <local:SoundControl />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </Grid>
         <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal">
             <HyperlinkButton Tapped="ConnectServerTapped" Visibility="{Binding Connected, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">

@@ -11,7 +11,7 @@ namespace AtmoSync.Client
     class ClientViewModel : BindableBase
     {
         ObservableCollection<Sound> _soundFiles = new ObservableCollection<Sound>();
-        public IList<Sound> SoundFiles { get { return _soundFiles; } set { SetProperty(ref _soundFiles, new ObservableCollection<Sound>(value)); } }
+        public IList<Sound> SoundFiles { get { return _soundFiles; } set { _soundFiles.Clear(); foreach (var item in value) _soundFiles.Add(item); OnPropertyChanged(nameof(SoundFiles)); } }
 
         public IDictionary<Guid, double> LocalSoundVolumes { get; set; } = new Dictionary<Guid, double>();
 
@@ -25,6 +25,7 @@ namespace AtmoSync.Client
         {
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             LoadSettingsAsync();
+            _soundFiles.Add(new Sound { ClientName = "asd" });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
 
