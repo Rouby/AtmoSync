@@ -73,12 +73,15 @@ namespace AtmoSync.Client
                         Client.AddSound(sound);
                     }
                     Client.SyncSound(sound.Id, sound);
+
                     Serializer.Serialize(new OkMessage { Timestamp = DateTimeOffset.Now }, Writer);
                     await Writer.FlushAsync();
                 }
                 else
                 {
                     // TODO error handling
+                    Serializer.Serialize(new OkMessage { Timestamp = DateTimeOffset.Now }, Writer);
+                    await Writer.FlushAsync();
                 }
             }
         }
