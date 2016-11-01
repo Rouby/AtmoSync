@@ -23,7 +23,7 @@ namespace AtmoSync.Shared
         public string ServerName { get { return _serverName; } set { SetProperty(ref _serverName, value); } }
 
         string _clientName;
-        public string ClientName { get { return _clientName; } set { SetProperty(ref _clientName, value); } }
+        public string ClientName { get { return string.IsNullOrWhiteSpace(_clientName) ? ServerName : _clientName; } set { SetProperty(ref _clientName, value); } }
 
         double _volume;
         public double Volume { get { return _volume; } set { SetProperty(ref _volume, value); } }

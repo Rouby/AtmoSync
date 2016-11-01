@@ -28,7 +28,7 @@ namespace AtmoSync.Server
             {
                 var icp = NetworkInformation.GetInternetConnectionProfile();
                 var hostname = NetworkInformation.GetHostNames()
-                    .SingleOrDefault(name => name.IPInformation?.NetworkAdapter?.NetworkAdapterId == icp?.NetworkAdapter?.NetworkAdapterId);
+                    .FirstOrDefault(name => name.IPInformation?.NetworkAdapter?.NetworkAdapterId == icp?.NetworkAdapter?.NetworkAdapterId);
                 return hostname?.CanonicalName ?? "No IP found";
             }
         }

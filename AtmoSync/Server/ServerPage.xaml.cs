@@ -15,6 +15,7 @@ using Windows.Networking;
 using Windows.Networking.Sockets;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.UI.Core;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -89,7 +90,13 @@ namespace AtmoSync.Server
                     // TODO sync sound to client
                     foreach (var client in clients)
                     {
-                        client.Value.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () => sound.DecrementSyncsOutstanding());
+                        client.Value.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () =>
+                        {
+                            var ignore2 = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                            {
+                                sound.DecrementSyncsOutstanding();
+                            });
+                        });
                     }
                 }
                 else
@@ -189,22 +196,24 @@ namespace AtmoSync.Server
             try
             {
                 listener = new StreamSocketListener();
+                listener.Control.QualityOfService = SocketQualityOfService.Normal;
                 listener.ConnectionReceived += HandleClientAsync;
                 await listener.BindServiceNameAsync("56779");
                 Model.Listening = true;
 
-                while (listener != null) { await Task.Delay(1000); }
+                //while (listener != null) { await Task.Delay(1000); }
             }
             catch (Exception e)
             {
                 var msg = new MessageDialog(e.Message);
                 await msg.ShowAsync();
+                Model.Listening = false;
             }
             finally
             {
-                listener?.Dispose();
-                listener = null;
-                Model.Listening = false;
+                //listener?.Dispose();
+                //listener = null;
+                //Model.Listening = false;
             }
         }
 
@@ -215,14 +224,27 @@ namespace AtmoSync.Server
             var client = ClientHandler.CreateNew(args.Socket, this);
             clients.TryAdd(id, client);
 
-            foreach (var sound in Model.SoundFiles)
+            foreach (var sound in Model.SoundFiles.Where(s => s.Sync))
             {
-                sound.IncrementSyncsOutstanding();
-                sound.IsSynced = false;
-                client.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () => sound.DecrementSyncsOutstanding());
+                var ignore = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    sound.IncrementSyncsOutstanding();
+                    sound.IsSynced = false;
+                });
+                client.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () =>
+                {
+                    var ignore2 = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                    {
+                        sound.DecrementSyncsOutstanding();
+                    });
+                });
             }
 
-            await client.Run();
+            try
+            {
+                await client.Run();
+            }
+            catch { }
 
             clients.TryRemove(id, out client);
         }

@@ -28,6 +28,8 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
+    <UseDotNetNativeToolchain>false</UseDotNetNativeToolchain>
+    <Optimize>false</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <OutputPath>bin\x86\Release\</OutputPath>
@@ -99,7 +101,7 @@
       <DependentUpon>ClientPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Client\ClientViewModel.cs" />
-    <Compile Include="Client\ClientHandler.cs" />
+    <Compile Include="Server\ClientHandler.cs" />
     <Compile Include="Server\IServer.cs" />
     <Compile Include="Server\ServerViewModel.cs" />
     <Compile Include="Server\SoundControl.xaml.cs">
@@ -139,7 +141,6 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
-    <None Include="AtmoSync_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\Icons\Attention.png" />

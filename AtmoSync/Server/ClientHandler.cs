@@ -3,6 +3,7 @@ using Polenter.Serialization;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Networking.Sockets;
 using Windows.Storage;
@@ -57,6 +58,8 @@ namespace AtmoSync.Server
                 {
                     IStorageFile file = await Server.GetSoundFileAsync(((RequestFileMessage)msg).SoundId);
                     var stream = await file.OpenStreamForReadAsync();
+                    await Writer.WriteAsync(BitConverter.GetBytes(stream.Length), 0, sizeof(long));
+                    await Writer.FlushAsync();
                     await stream.CopyToAsync(Writer);
                     await Writer.FlushAsync();
 

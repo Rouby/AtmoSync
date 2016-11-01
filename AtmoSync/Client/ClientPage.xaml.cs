@@ -73,6 +73,8 @@ namespace AtmoSync.Client
                 if (!response.Valid)
                     throw new Exception(response.Message ?? "Could not connect to remote server.");
 
+                await DirectConnectAsync($"{response.ServerAddress}:{response.ServerPort}");
+
                 //var serverSocket = new StreamSocket();
                 //await serverSocket.ConnectAsync(new HostName(response.ServerAddress), response.ServerPort);
 
