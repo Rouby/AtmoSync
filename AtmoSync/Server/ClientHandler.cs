@@ -65,7 +65,7 @@ namespace AtmoSync.Server
                 serializer.Serialize(outGoing.Message, writer);
                 await writer.FlushAsync();
 
-                var msg = serializer.Deserialize(reader);
+                var msg = serializer.Deserialize(reader) as Message;
 
                 if (msg is OkMessage)
                 {
@@ -76,7 +76,7 @@ namespace AtmoSync.Server
                     IStorageFile file = await server.GetSoundFileAsync(((RequestFileMessage)msg).SoundId);
                     await SendFileAsync(file);
 
-                    msg = serializer.Deserialize(reader);
+                    msg = serializer.Deserialize(reader) as Message;
 
                     if (msg is OkMessage)
                     {

@@ -56,7 +56,7 @@ namespace AtmoSync.Server
 
                 var ignored = PunchServerHeartbeat(cts.Token);
 
-                PunchSetup?.Invoke(this, new EventArgs { });
+                PunchSetup?.Invoke(this, EventArgs.Empty);
             }
             catch
             {
@@ -86,7 +86,7 @@ namespace AtmoSync.Server
 
                 if (!response.Valid)
                 {
-                    HeartbeatFailed?.Invoke(this, new EventArgs { });
+                    HeartbeatFailed?.Invoke(this, EventArgs.Empty);
                     break;
                 }
             }
@@ -104,7 +104,7 @@ namespace AtmoSync.Server
 
                 await listener.BindServiceNameAsync(ServiceName);
 
-                Startup?.Invoke(this, new EventArgs { });
+                Startup?.Invoke(this, EventArgs.Empty);
             }
             catch
             {
@@ -121,7 +121,7 @@ namespace AtmoSync.Server
             listener?.Dispose();
             listener = null;
 
-            Teardown?.Invoke(this, new EventArgs { });
+            Teardown?.Invoke(this, EventArgs.Empty);
         }
 
         async void ConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
@@ -134,7 +134,7 @@ namespace AtmoSync.Server
 
             await client.Run();
 
-            ClientDisconnected?.Invoke(this, new EventArgs { });
+            ClientDisconnected?.Invoke(this, EventArgs.Empty);
 
             clients.TryRemove(id, out client);
         }
