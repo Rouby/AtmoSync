@@ -1,18 +1,13 @@
 ﻿using AtmoSync.Shared;
 using AtmoSync.Shared.Messages;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Networking;
-using Windows.Networking.Sockets;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.UI.Core;
@@ -33,12 +28,7 @@ namespace AtmoSync.Server
     {
         ServerViewModel Model { get; set; }
 
-        StreamSocket punchServer;
-        StreamReader punchIn;
-        StreamWriter punchOut;
-
-        StreamSocketListener listener;
-        ConcurrentDictionary<Guid, ClientHandler> clients = new ConcurrentDictionary<Guid, ClientHandler>();
+        readonly Server server;
 
         public ServerPage()
         {
@@ -46,9 +36,39 @@ namespace AtmoSync.Server
             DataContext = Model = new ServerViewModel();
             Model.PropertyChanged += ModelPropertyChanged;
             (Model.SoundFiles as INotifyCollectionChanged).CollectionChanged += SoundsListChanged;
+
+            server = new Server { Interface = this };
+            server.Startup += ServerStartup;
+            server.Teardown += ServerTeardown;
+            server.ClientConnected += ServerClientConnected;
         }
 
-        private void SoundsListChanged(object sender, NotifyCollectionChangedEventArgs e)
+        void ServerClientConnected(object sender, ClientHandler client)
+        {
+            var ignore = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                foreach (var sound in Model.SoundFiles.Where(s => s.Sync))
+                {
+                    sound.IncrementSyncsOutstanding();
+                    client.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () =>
+                    {
+                        var ignoreToo = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, sound.DecrementSyncsOutstanding);
+                    });
+                }
+            });
+        }
+
+        void ServerStartup(object sender, EventArgs e)
+        {
+            Model.Listening = true;
+        }
+
+        void ServerTeardown(object sender, EventArgs e)
+        {
+            Model.Listening = false;
+        }
+
+        void SoundsListChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             switch (e.Action)
             {
@@ -69,7 +89,7 @@ namespace AtmoSync.Server
                     oldItem.PropertyChanged -= SoundFileChanged;
         }
 
-        private void SoundFileChanged(object sender, PropertyChangedEventArgs e)
+        void SoundFileChanged(object sender, PropertyChangedEventArgs e)
         {
             var sound = (Sound)sender;
 
@@ -85,25 +105,16 @@ namespace AtmoSync.Server
             {
                 if (sound.Sync)
                 {
-                    sound.SyncsOutstanding = clients.Count;
-                    sound.IsSynced = clients.Count == 0;
-                    foreach (var client in clients)
+                    sound.SyncsOutstanding = server.ConnectedClients;
+                    sound.IsSynced = server.ConnectedClients == 0;
+                    server.Broadcast(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () =>
                     {
-                        client.Value.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () =>
-                        {
-                            var ignore2 = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-                            {
-                                sound.DecrementSyncsOutstanding();
-                            });
-                        });
-                    }
+                        var ignore = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, sound.DecrementSyncsOutstanding);
+                    });
                 }
                 else
                 {
-                    foreach (var client in clients)
-                    {
-                        client.Value.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = new Sound { Id = sound.Id } });
-                    }
+                    server.Broadcast(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = new Sound { Id = sound.Id } });
                 }
             }
             else if (e.PropertyName == nameof(Sound.Status))
@@ -122,14 +133,11 @@ namespace AtmoSync.Server
                         break;
                 }
 
-                foreach (var client in clients)
-                {
-                    client.Value.EnqueueMessage(msg);
-                }
+                server.Broadcast(msg);
             }
         }
 
-        private void ModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        void ModelPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ServerViewModel.SoundFiles))
             {
@@ -142,134 +150,30 @@ namespace AtmoSync.Server
             FlyoutBase.ShowAttachedFlyout((FrameworkElement)sender);
         }
 
-        void StartServerTapped(object sender, TappedRoutedEventArgs e)
+        async void StartServerTapped(object sender, TappedRoutedEventArgs e)
         {
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             if (punshThroughSwitch.IsOn)
             {
-                RegisterOnPunchServerAsync();
-                Model.LoadSoundFilesAsync(serverTextBox.Text);
+                if (!await server.RegisterOnPunchServerAsync(serverTextBox.Text, new HostName(Model.Settings.PunchServerAddress), Model.Settings.PunchServerPort))
+                {
+                    var startAnywayDialog = new MessageDialog("Failed to register on punch server. Start local direct-ip server anyways?");
+                    var yesCommand = new UICommand("Yes");
+                    startAnywayDialog.Commands.Add(yesCommand);
+                    startAnywayDialog.Commands.Add(new UICommand("No"));
+                    if (await startAnywayDialog.ShowAsync() != yesCommand)
+                        return;
+                }
             }
-            else
+
+            if (!await server.Start())
             {
-                CreateListenerAsync();
-                Model.LoadSoundFilesAsync("direct");
+                await new MessageDialog("Failed to start local server.").ShowAsync();
             }
+
             startServerFlyout.Hide();
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
 
-        async Task RegisterOnPunchServerAsync()
-        {
-            try
-            {
-                punchServer = new StreamSocket();
-                await punchServer.ConnectAsync(new HostName(Model.Settings.PunchServerAddress), Model.Settings.PunchServerPort);
-
-                punchIn = new StreamReader(punchServer.InputStream.AsStreamForRead());
-                punchOut = new StreamWriter(punchServer.OutputStream.AsStreamForWrite());
-
-                await punchOut.WriteLineAsync(JsonConvert.SerializeObject(new PunchRequest { ServerAlias = serverTextBox.Text }));
-                await punchOut.FlushAsync();
-
-                var response = JsonConvert.DeserializeObject<PunchResponse>(await punchIn.ReadLineAsync());
-
-                if (!response.Valid)
-                    throw new Exception(response.Message ?? "Could not establish server alias.");
-
-                var cts = new CancellationTokenSource();
-                var tasks = new[] { CreateListenerAsync(), CreateHeartbeatPunchServerAsync(cts.Token) };
-
-                await Task.WhenAny(tasks);
-
-                cts.Cancel();
-            }
-            catch (Exception e)
-            {
-                punchIn?.Dispose();
-                punchOut?.Dispose();
-                punchServer.Dispose();
-                punchIn = null;
-                punchOut = null;
-                punchServer = null;
-
-                var msg = new MessageDialog(e.Message);
-                await msg.ShowAsync();
-            }
-        }
-
-        async Task CreateHeartbeatPunchServerAsync(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested && punchServer != null)
-            {
-                await punchOut.WriteLineAsync(JsonConvert.SerializeObject(new PunchHeartbeat()));
-                await punchOut.FlushAsync();
-
-                var response = JsonConvert.DeserializeObject<PunchHeartbeat>(await punchIn.ReadLineAsync());
-
-                await Task.Delay(10000);
-            }
-        }
-
-        async Task CreateListenerAsync()
-        {
-            try
-            {
-                listener = new StreamSocketListener();
-                listener.Control.QualityOfService = SocketQualityOfService.Normal;
-                listener.ConnectionReceived += HandleClientAsync;
-                await listener.BindServiceNameAsync("56779");
-                Model.Listening = true;
-
-                //while (listener != null) { await Task.Delay(1000); }
-            }
-            catch (Exception e)
-            {
-                var msg = new MessageDialog(e.Message);
-                await msg.ShowAsync();
-                Model.Listening = false;
-            }
-            finally
-            {
-                //listener?.Dispose();
-                //listener = null;
-                //Model.Listening = false;
-            }
-        }
-
-
-        async void HandleClientAsync(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
-        {
-            var id = Guid.NewGuid();
-            var client = ClientHandler.CreateNew(args.Socket, this);
-            clients.TryAdd(id, client);
-
-            foreach (var sound in Model.SoundFiles.Where(s => s.Sync))
-            {
-                var ignore = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-                {
-                    sound.IncrementSyncsOutstanding();
-                    sound.IsSynced = false;
-                });
-                client.EnqueueMessage(new SyncSoundMessage { Timestamp = DateTimeOffset.Now, Sound = sound }, () =>
-                {
-                    var ignore2 = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-                    {
-                        sound.DecrementSyncsOutstanding();
-                    });
-                });
-            }
-
-            try
-            {
-                await client.Run();
-            }
-            catch { }
-
-            clients.TryRemove(id, out client);
-        }
-
-        private void Page_DragOver(object sender, DragEventArgs e)
+        void Page_DragOver(object sender, DragEventArgs e)
         {
             if (e.DataView.Contains(StandardDataFormats.StorageItems))
             {
@@ -277,7 +181,7 @@ namespace AtmoSync.Server
             }
         }
 
-        private async void Page_Drop(object sender, DragEventArgs e)
+        async void Page_Drop(object sender, DragEventArgs e)
         {
             if (e.DataView.Contains(StandardDataFormats.StorageItems))
             {
@@ -287,7 +191,7 @@ namespace AtmoSync.Server
             }
         }
 
-        private async void AddNewSound(object sender, TappedRoutedEventArgs e)
+        async void AddNewSound(object sender, TappedRoutedEventArgs e)
         {
             var picker = new FileOpenPicker
             {
@@ -302,6 +206,15 @@ namespace AtmoSync.Server
             if (files?.Any() ?? false)
             {
                 await AddFiles(files);
+            }
+        }
+
+        async void RemoveSound(object sender, EventArgs e)
+        {
+            if (Model.SoundFiles.Contains(sender))
+            {
+                Model.SoundFiles.Remove((Sound)sender);
+                await Model.SaveSoundFilesAsync(string.IsNullOrWhiteSpace(serverTextBox.Text) ? "direct" : serverTextBox.Text);
             }
         }
 
@@ -327,15 +240,6 @@ namespace AtmoSync.Server
         public async Task<IStorageFile> GetSoundFileAsync(Guid id)
         {
             return await StorageFile.GetFileFromPathAsync(Model.SoundFiles.FirstOrDefault(s => s.Id.Equals(id)).File);
-        }
-
-        private async void RemoveSound(object sender, EventArgs e)
-        {
-            if (Model.SoundFiles.Contains(sender))
-            {
-                Model.SoundFiles.Remove((Sound)sender);
-                await Model.SaveSoundFilesAsync(string.IsNullOrWhiteSpace(serverTextBox.Text) ? "direct" : serverTextBox.Text);
-            }
         }
     }
 }

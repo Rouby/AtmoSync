@@ -60,7 +60,8 @@ namespace AtmoSync.Shared
 
         public void IncrementSyncsOutstanding()
         {
-            Interlocked.Increment(ref _syncsOutstanding);
+            if (Interlocked.Increment(ref _syncsOutstanding) > 0)
+                IsSynced = false;
         }
 
         public void DecrementSyncsOutstanding()

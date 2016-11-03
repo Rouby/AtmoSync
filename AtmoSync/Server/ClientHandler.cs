@@ -10,75 +10,99 @@ using Windows.Storage;
 
 namespace AtmoSync.Server
 {
+    class QueuedMessage
+    {
+        public readonly Message Message;
+        public readonly Action Success;
+        public readonly Action Failure;
+
+        public QueuedMessage(Message message, Action success, Action failure)
+        {
+            Message = message;
+            Success = success;
+            Failure = failure;
+        }
+    }
+
     class ClientHandler
     {
+        static readonly SharpSerializer serializer = new SharpSerializer();
+
+        public static ClientHandler CreateNew(StreamSocket socket, IServer server, CancellationToken token)
+        {
+            return new ClientHandler
+            {
+                reader = socket.InputStream.AsStreamForRead(),
+                writer = socket.OutputStream.AsStreamForWrite(),
+                server = server,
+                token = token
+            };
+        }
+
         private ClientHandler()
         {
 
         }
 
-        Stream Reader { get; set; }
-        Stream Writer { get; set; }
-        IServer Server { get; set; }
+        Stream reader;
+        Stream writer;
+        IServer server;
 
-        SharpSerializer Serializer { get; set; } = new SharpSerializer();
+        CancellationToken token;
 
-        BlockingCollection<Tuple<Message, Action>> MessageQueue { get; set; } = new BlockingCollection<Tuple<Message, Action>>();
+        readonly BlockingCollection<QueuedMessage> messageQueue = new BlockingCollection<QueuedMessage>();
 
-        public static ClientHandler CreateNew(StreamSocket socket, IServer server)
+        public void EnqueueMessage(Message msg, Action success = null, Action failure = null)
         {
-            return new ClientHandler
-            {
-                Reader = socket.InputStream.AsStreamForRead(),
-                Writer = socket.OutputStream.AsStreamForWrite(),
-                Server = server
-            };
-        }
-
-        public void EnqueueMessage(Message msg, Action callback = null)
-        {
-            MessageQueue.Add(Tuple.Create(msg, callback));
+            messageQueue.Add(new QueuedMessage(msg, success, failure));
         }
 
         public async Task Run()
         {
-            while (true)
+            while (!token.IsCancellationRequested)
             {
-                var outGoing = MessageQueue.Take();
-                Serializer.Serialize(outGoing.Item1, Writer);
-                await Writer.FlushAsync();
+                var outGoing = messageQueue.Take();
+                serializer.Serialize(outGoing.Message, writer);
+                await writer.FlushAsync();
 
-                var msg = Serializer.Deserialize(Reader);
+                var msg = serializer.Deserialize(reader);
 
                 if (msg is OkMessage)
                 {
-                    outGoing.Item2?.Invoke();
+                    outGoing.Success?.Invoke();
                 }
                 else if (msg is RequestFileMessage)
                 {
-                    IStorageFile file = await Server.GetSoundFileAsync(((RequestFileMessage)msg).SoundId);
-                    var stream = await file.OpenStreamForReadAsync();
-                    await Writer.WriteAsync(BitConverter.GetBytes(stream.Length), 0, sizeof(long));
-                    await Writer.FlushAsync();
-                    await stream.CopyToAsync(Writer);
-                    await Writer.FlushAsync();
+                    IStorageFile file = await server.GetSoundFileAsync(((RequestFileMessage)msg).SoundId);
+                    await SendFileAsync(file);
 
-                    msg = Serializer.Deserialize(Reader);
+                    msg = serializer.Deserialize(reader);
 
                     if (msg is OkMessage)
                     {
-                        outGoing.Item2?.Invoke();
+                        outGoing.Success?.Invoke();
                     }
                     else
                     {
-                        // TODO error handling 2
+                        outGoing.Failure?.Invoke();
                     }
                 }
                 else
                 {
-                    // TODO error handling
+                    outGoing.Failure?.Invoke();
                 }
             }
+        }
+
+        async Task SendFileAsync(IStorageFile file)
+        {
+            var fileStream = await file.OpenStreamForReadAsync();
+
+            await writer.WriteAsync(BitConverter.GetBytes(fileStream.Length), 0, sizeof(long));
+            await writer.FlushAsync();
+
+            await fileStream.CopyToAsync(writer);
+            await writer.FlushAsync();
         }
     }
 }

@@ -50,10 +50,6 @@ namespace AtmoSync.Server
 
         }
 
-        private async void UserControl_Loaded(object sender, RoutedEventArgs e)
-        {
-        }
-
         private async void SoundControl_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             var sound = (Sound)sender;
