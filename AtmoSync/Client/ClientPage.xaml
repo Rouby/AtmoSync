@@ -1,12 +1,13 @@
 ﻿<Page
-    x:Class="AtmoSync.Client.ClientPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:AtmoSync.Client"
     xmlns:shared="using:AtmoSync.Shared"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    d:DataContext="{d:DesignInstance Type=local:ClientViewModel, IsDesignTimeCreatable=True}"
+    xmlns:UI="using:Microsoft.Advertising.WinRT.UI"
+    x:Class="AtmoSync.Client.ClientPage"
+    d:DataContext="{d:DesignInstance IsDesignTimeCreatable=True, Type=local:ClientViewModel}"
     mc:Ignorable="d">
     <Page.Resources>
         <shared:ConnectedToSymbolConverter x:Key="ConnectedConverter"/>
@@ -24,9 +25,9 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <TextBlock Text="Sounds" FontWeight="Bold" FontSize="18" />
-            <ItemsControl Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding SoundFiles}" Margin="10,0">
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding SoundFiles}" Margin="10,0,10,80">
                 <ItemsControl.ItemTemplate>
-                    
+
                     <DataTemplate>
                         <local:SoundControl />
                     </DataTemplate>
@@ -38,7 +39,7 @@
                 <FlyoutBase.AttachedFlyout>
                     <Flyout x:Name="connectServerFlyout">
                         <StackPanel Orientation="Horizontal">
-                            <TextBox x:Name="serverTextBox" Width="200" Margin="0,0,10,0" PlaceholderText="Server address"></TextBox>
+                            <TextBox x:Name="serverTextBox" Width="200" Margin="0,0,10,0" PlaceholderText="Server address"/>
                             <Button Tapped="InitConnectionTapped">Connect</Button>
                         </StackPanel>
                     </Flyout>
@@ -49,5 +50,6 @@
             </HyperlinkButton>
             <SymbolIcon Symbol="{Binding Connected, Converter={StaticResource ConnectedConverter}}" Width="32"/>
         </StackPanel>
+        <UI:AdControl ApplicationId="b059803f-3ead-443f-a953-1535714755a1" AdUnitId="336673" Height="80" VerticalAlignment="Bottom" Width="360"/>
     </Grid>
 </Page>
